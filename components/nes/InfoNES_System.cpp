@@ -1,10 +1,10 @@
-#include <esp_log.h>
-#include <esp_attr.h>
 #include "InfoNES_System.h"
 #include "InfoNES.h"
 #include "string.h"
 #include "stdint.h"
 #include "stdio.h"
+#include "mem_section.h"
+
 
 // 1MB psram memory for rom, if we use const for rom, infoNES will crush, still don't know why
 EXT_RAM_BSS_ATTR uint8_t rom[1024*1024] L2_RET_BSS_SECT(rom);
@@ -26,7 +26,7 @@ DWORD dwSystem=0;
 //https://zhuanlan.zhihu.com/p/34144965?utm_medium=social&utm_source=qq
 //https://www.nesdev.org/pal.txt
 
-#if 0
+#if 1
 WORD NesPalette[64] = {0x738e, 0x20d1, 0x15, 0x4013, 0x880e, 0xa802, 0xa000, 0x7840,
                        0x4140, 0x200, 0x280, 0x1c2, 0x19cb, 0x0, 0x0, 0x0,
                        0xbdd7, 0x39d, 0x21dd, 0x801e, 0xb817, 0xe00b, 0xd940, 0xca41,

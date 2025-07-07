@@ -6,10 +6,13 @@
 #include "stdlib.h"
 #include <math.h>
 #include "string.h"
-#include "tgx_c.h"
+#include "InfoNES_C.h"
+#include "InfoNES.h"
+#include "InfoNES_Types.h"
+#include "src_rom.h"
 
 // 屏幕尺寸
-#define DISP_HOR_RES 240
+#define DISP_HOR_RES 256
 #define DISP_VER_RES 240
 
 // 全局画布对象和缓冲区
@@ -19,13 +22,17 @@ static uint8_t *frame_buffer = NULL;
 // 雪花屏刷新回调
 static void snow_effect_cb(lv_timer_t *timer)
 {
-    // 获取画布缓冲区指针 (RGB565格式)
-    uint16_t *buf = (uint16_t *)getFrame();
-    const size_t total_pixels = DISP_HOR_RES * DISP_VER_RES;
+    // rt_kprintf("start\n");
+    // for (size_t i = 0; i < 1; i++)
+    // {
+    //     InfoNES_Cycle_C();
 
+    // }
+    
+    // rt_kprintf("end\n");
+    InfoNES_Cycle_C();
 
-    tgx_next();
-
+    // lv_canvas_set_buffer(canvas, InfoNES_GetScreenBuffer_C(), DISP_HOR_RES, DISP_VER_RES, LV_COLOR_FORMAT_RGB565);
 
     // 标记整个区域需要重绘
     lv_obj_invalidate(canvas);
@@ -43,7 +50,7 @@ void create_snow_effect(void)
     // 配置画布缓冲区
     lv_canvas_set_buffer(
         canvas,
-        getFrame(),
+        InfoNES_GetScreenBuffer_C(),
         DISP_HOR_RES,
         DISP_VER_RES,
         LV_COLOR_FORMAT_RGB565);
@@ -51,8 +58,11 @@ void create_snow_effect(void)
     // 设置画布全屏显示
     lv_obj_set_size(canvas, DISP_HOR_RES, DISP_VER_RES);
     lv_obj_align(canvas, LV_ALIGN_TOP_LEFT, 0, 0);
-
-    tgx_setup();
+    extern uint8_t rom[];
+    memcpy(rom, roma, sizeof(roma));
+    // FrameSkip=1;
+    InfoNES_Load_C();
+    InfoNES_Init_C();
 
     // 创建定时器刷新雪花效果 (30FPS)
     lv_timer_create(snow_effect_cb, 17, NULL); // 33ms ≈ 30FPS

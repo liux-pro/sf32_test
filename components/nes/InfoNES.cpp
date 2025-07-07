@@ -43,7 +43,6 @@
 #include <assert.h>
 #include <pico.h>
 #include <tuple>
-#include "esp_attr.h"
 //标记生成完成一帧，退出循环
 bool frame_ready = false;
 //#include <util/work_meter.h>
