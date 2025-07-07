@@ -1,0 +1,16 @@
+from building import *
+import rtconfig
+import os
+
+src = []
+inc = []
+cwd = GetCurrentDir()  # get current dir path
+
+src += Glob('*.cpp')
+inc += [cwd]
+defines = []
+
+
+group = DefineGroup('InfoNES', src, depend=[], CPPDEFINES=[
+                    "EXT_RAM_BSS_ATTR="], CPPPATH=inc)
+Return('group')

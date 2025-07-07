@@ -1,0 +1,16 @@
+from building import *
+import rtconfig
+import os
+
+src = []
+inc = []
+cwd = GetCurrentDir() # get current dir path
+
+src+=Glob('*.c')
+src+=Glob('*.cpp')
+
+inc+= [cwd]
+
+
+group = DefineGroup('DEMO', src, depend = ['PKG_USING_LITTLEVGL2RTT'], CPPPATH = inc)
+Return('group')

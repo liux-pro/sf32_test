@@ -1,0 +1,20 @@
+import os
+from building import *
+
+cwd = GetCurrentDir()
+objs = []
+list = os.listdir(cwd)
+
+# Add SDK
+Import('SIFLI_SDK')
+objs.extend(SConscript(os.path.join(SIFLI_SDK, 'SConscript'), variant_dir="sifli_sdk", duplicate=0))
+
+# Add application source code
+objs.extend(SConscript(cwd+'/../src/SConscript', variant_dir="src", duplicate=0))
+
+# ▼▼▼ 自动组件加载 ▼▼▼
+from components_loader import pre_component_loader
+pre_component_loader(objs, Dir('#').Dir('..').abspath)
+# ▲▲▲ 自动组件加载 ▲▲▲
+
+Return('objs')
