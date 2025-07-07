@@ -4,10 +4,12 @@
 /*                                                                   */
 /*===================================================================*/
 
-EXT_RAM_BSS_ATTR BYTE Map5_Wram[0x2000 * 8];
-EXT_RAM_BSS_ATTR BYTE Map5_Ex_Ram[0x400];
-EXT_RAM_BSS_ATTR BYTE Map5_Ex_Vram[0x400];
-EXT_RAM_BSS_ATTR BYTE Map5_Ex_Nam[0x400];
+EXT_RAM_BSS_ATTR BYTE Map5_Wram[0x2000 * 8] L2_RET_BSS_SECT(Map5_Wram);
+EXT_RAM_BSS_ATTR BYTE Map5_Ex_Ram[0x400] L2_RET_BSS_SECT(Map5_Ex_Ram);
+EXT_RAM_BSS_ATTR BYTE Map5_Ex_Vram[0x400] L2_RET_BSS_SECT(Map5_Ex_Vram);
+
+EXT_RAM_BSS_ATTR BYTE Map5_Ex_Nam[0x400] L2_RET_BSS_SECT(Map5_Ex_Nam);
+
 
 BYTE Map5_Prg_Reg[8];
 BYTE Map5_Wram_Reg[8];

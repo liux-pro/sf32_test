@@ -4,7 +4,7 @@
 /*                                                                   */
 /*===================================================================*/
 
-EXT_RAM_BSS_ATTR BYTE Map85_Chr_Ram[0x100 * 0x400];
+EXT_RAM_BSS_ATTR BYTE Map85_Chr_Ram[0x100 * 0x400] L2_RET_BSS_SECT(Map85_Chr_Ram);
 BYTE Map85_Regs[1];
 BYTE Map85_IRQ_Enable;
 BYTE Map85_IRQ_Cnt;

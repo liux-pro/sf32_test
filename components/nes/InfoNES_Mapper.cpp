@@ -21,7 +21,7 @@
 /*-------------------------------------------------------------------*/
 
 /* Disk System RAM */
-EXT_RAM_BSS_ATTR BYTE DRAM[DRAM_SIZE];
+EXT_RAM_BSS_ATTR BYTE DRAM[DRAM_SIZE] L2_RET_BSS_SECT(DRAM);
 
 /*-------------------------------------------------------------------*/
 /*  Table of Mapper initialize function                              */

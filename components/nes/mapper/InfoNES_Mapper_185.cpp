@@ -4,7 +4,7 @@
 /*                                                                   */
 /*===================================================================*/
 
-EXT_RAM_BSS_ATTR BYTE Map185_Dummy_Chr_Rom[ 0x400 ];
+EXT_RAM_BSS_ATTR BYTE Map185_Dummy_Chr_Rom[ 0x400 ] L2_RET_BSS_SECT(Map185_Dummy_Chr_Rom);
 
 /*-------------------------------------------------------------------*/
 /*  Initialize Mapper 185                                            */

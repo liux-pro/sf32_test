@@ -66,10 +66,10 @@ enum
 /*-------------------------------------------------------------------*/
 
 /* RAM */
-EXT_RAM_BSS_ATTR BYTE RAM[RAM_SIZE];
+EXT_RAM_BSS_ATTR BYTE RAM[RAM_SIZE] L2_RET_BSS_SECT(RAM);
 
 /* SRAM */
-EXT_RAM_BSS_ATTR BYTE SRAM[SRAM_SIZE];
+EXT_RAM_BSS_ATTR BYTE SRAM[SRAM_SIZE] L2_RET_BSS_SECT(SRAM);
 bool SRAMwritten = false;
 
 /* ROM */
@@ -90,7 +90,7 @@ BYTE *ROMBANK[4];
 /*-------------------------------------------------------------------*/
 
 /* PPU RAM */
-EXT_RAM_BSS_ATTR BYTE PPURAM[PPURAM_SIZE];
+EXT_RAM_BSS_ATTR BYTE PPURAM[PPURAM_SIZE] L2_RET_BSS_SECT(PPURAM);
 
 /* VROM */
 BYTE *VROM;
@@ -191,7 +191,8 @@ void __not_in_flash_func(InfoNES_SetLineBuffer)(WORD *p, WORD size)
 #endif
 
 /* Character Buffer */
-EXT_RAM_BSS_ATTR BYTE ChrBuf[256 * 2 * 8 * 8];
+EXT_RAM_BSS_ATTR BYTE ChrBuf[256 * 2 * 8 * 8] L2_RET_BSS_SECT(ChrBuf);
+
 
 /* Update flag for ChrBuf */
 BYTE ChrBufUpdate;

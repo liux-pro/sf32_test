@@ -6,7 +6,8 @@
 
 BYTE Map6_IRQ_Enable;
 DWORD Map6_IRQ_Cnt;
-EXT_RAM_BSS_ATTR BYTE Map6_Chr_Ram[0x2000 * 4];
+EXT_RAM_BSS_ATTR BYTE Map6_Chr_Ram[0x2000 * 4] L2_RET_BSS_SECT(Map6_Chr_Ram);
+
 
 /* The address of 1Kbytes unit of the Map6 Chr RAM */
 #define Map6_VROMPAGE(a) &Map6_Chr_Ram[(a)*0x400]

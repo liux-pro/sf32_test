@@ -7,11 +7,11 @@
 #include "stdio.h"
 
 // 1MB psram memory for rom, if we use const for rom, infoNES will crush, still don't know why
-EXT_RAM_BSS_ATTR uint8_t rom[1024*1024];
+EXT_RAM_BSS_ATTR uint8_t rom[1024*1024] L2_RET_BSS_SECT(rom);
 
 bool screenIndex = true;
-EXT_RAM_BSS_ATTR WORD nesScreenBuffer[2][NES_DISP_HEIGHT][NES_DISP_WIDTH];
-EXT_RAM_BSS_ATTR WORD nesSoundBuffer[2][1024];
+EXT_RAM_BSS_ATTR WORD nesScreenBuffer[2][NES_DISP_HEIGHT][NES_DISP_WIDTH] L2_RET_BSS_SECT(nesScreenBuffer);;
+EXT_RAM_BSS_ATTR WORD nesSoundBuffer[2][1024] L2_RET_BSS_SECT(nesSoundBuffer);
 uint16_t nesSoundOffset=0;
 
 /* Pad state */
