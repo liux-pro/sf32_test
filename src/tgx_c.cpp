@@ -91,8 +91,7 @@ Renderer3D<RGB565, TGX_SHADER_MASK_ALL, float> renderer;
 extern "C" void tgx_setup()
 {
     imageBuffer = Image<RGB565>(fb, SLX, SLY);
-    cubeColors[0] = RGB565_Yellow;250, 128, 114;
-    cubeColors[0] = RGB565(250, 128, 114);
+    cubeColors[0] = RGB565_Yellow;
     cubeColors[1] = RGB565_Green;
     cubeColors[2] = RGB565_Red;
     cubeColors[3] = RGB565_White;

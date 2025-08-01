@@ -68,8 +68,45 @@ int main(void)
 
     rt_err_t ret = RT_EOK;
     rt_uint32_t ms;
+    {
+        static PMU_ChgHandleTypeDef sifli_charge_handle;
 
-    HAL_PMU_ConfigPeriLdo(PMU_PERI_LDO3_3V3, true, true);
+        #define CHARGE_DEFAULT_CV_VCTRL     (0x27)
+        #define CHARGE_DEFAULT_BANDGAP_VREF (0x7)
+        #define CHARGE_DEFAULT_CC_MN        (0x8)
+        #define CHARGE_DEFAULT_CC_MP        (0x14)
+        #define CHARGE_DEFAULT_FULL_VOLTAGE (4200)     /*mv*/
+        #define CHARGE_DEFAULT_REP_VOLTAGE  (CHARGE_DEFAULT_FULL_VOLTAGE - 135 )     /*mv*/
+        #define CHARGE_DEFAULT_VBAT_HIGH_VOLTAGE (4800)     /*mv*/
+        #define CHARGE_CC_CURRENT_LEVEL0   (65)
+        #define CHARGE_CC_CURRENT_LEVEL1   (300)
+        PMU_ChgCalParamTypeDef cal_param;
+        FACTORY_CFG_CHARGER_T cfg;
+        int len = sizeof(FACTORY_CFG_CHARGER_T);
+    
+        cal_param.cc_mn = CHARGE_DEFAULT_CC_MN;
+        cal_param.cc_mp = CHARGE_DEFAULT_CC_MP;
+        cal_param.cv_vctrl = CHARGE_DEFAULT_CV_VCTRL;
+        cal_param.bg = CHARGE_DEFAULT_BANDGAP_VREF;
+        cal_param.rep_vctrl = CHARGE_DEFAULT_CV_VCTRL - 7;
+    
+        if (BSP_CONFIG_get(FACTORY_CFG_ID_CHARGER, (uint8_t *)&cfg, len))
+        {
+            cal_param.cc_mn = cfg.cc_mn;
+            cal_param.cc_mp = cfg.cc_mp;
+            cal_param.cv_vctrl = cfg.cv_vctrl;
+            cal_param.bg = cfg.prog_v1p2;
+            cal_param.rep_vctrl = cfg.cv_vctrl - 7;
+            rt_kprintf("cal data cc_mn:%d cc_mp:%d cv_vctrl:%d prog_vlp2:%d\n", cfg.cc_mn, cfg.cc_mp, cfg.cv_vctrl, cfg.prog_v1p2);
+        }
+        HAL_PMU_ChgInit(&sifli_charge_handle, &cal_param);
+        //  HAL_HPAON_EnableWakeupSrc(HPAON_WAKEUP_SRC_PMUC, AON_PIN_MODE_DOUBLE_EDGE);
+        HAL_PMU_EnableChgWakeup();
+        HAL_PMU_ChgConfigTargetVolt(&sifli_charge_handle, CHARGE_DEFAULT_FULL_VOLTAGE);
+        HAL_PMU_ChgConfigRepVolt(&sifli_charge_handle, CHARGE_DEFAULT_REP_VOLTAGE);
+        HAL_PMU_ChgConfigVbatHighVolt(&sifli_charge_handle, CHARGE_DEFAULT_VBAT_HIGH_VOLTAGE);
+        HAL_PMU_ChgConfigCcCurrent(&sifli_charge_handle, 300);
+    }
 
     /* init littlevGL */
     ret = littlevgl2rtt_init("lcd");
