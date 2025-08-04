@@ -1,12 +1,20 @@
-#include "rtthread.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include <rtthread.h>
+#include <rtdbg.h>
+#include "board.h"
+
 #include "bf0_hal.h"
 #include "drv_io.h"
+
 #include "littlevgl2rtt.h"
 #include "lv_canvas.h"
-#include "stdlib.h"
-#include <math.h>
-#include "string.h"
 #include "tgx_c.h"
+
+#include "charge.h"
 
 // 屏幕尺寸
 #define DISP_HOR_RES 240
@@ -58,6 +66,44 @@ void create_snow_effect(void)
     lv_timer_create(snow_effect_cb, 17, NULL); // 33ms ≈ 30FPS
 }
 
+
+#define ADC_DEV_NAME        "bat1"      /* ADC1的设备，在rt_hw_adc_register函数内已注册，不能随便修改 */
+#define ADC_DEV_CHANNEL     7           /* ADC通道选择 vbat固定为CH8(Channel 7) */
+
+static rt_device_t s_adc_dev; /* 定义一个rt_device设备 */
+static rt_adc_cmd_read_arg_t read_arg;
+
+void adc_example(void)
+{
+    rt_err_t r;
+
+    /* 把PA28配置为模拟输入IO，并且不能使能内部上下拉 */
+    //HAL_PIN_Set_Analog(PAD_PA28, 1);
+
+    /* 找到bat1设备，如果没有打开 BSP_USING_ADC1，会找不到设备，出现死机 */
+    s_adc_dev = rt_device_find(ADC_DEV_NAME);
+
+    /* 配置采样通道为 channel 0*/
+    read_arg.channel = ADC_DEV_CHANNEL;
+
+    r = rt_adc_enable((rt_adc_device_t)s_adc_dev, read_arg.channel);
+
+    /* 这个接口会调用 sifli_adc_control 函数,只读取一次,用户可以自行对数据进行处理 */   
+    /* 读出来的数乘2.01才是最终结果，vbat引脚芯片内部内置分压电阻，sdk源码里搜adc_vbat_factor了解详情 */
+    r = rt_device_control(s_adc_dev, RT_ADC_CMD_READ, &read_arg.channel);
+    /* log打印的value值，单位为0.1mV，20846等于2084.6mV或者2.0846V  */
+    LOG_I("adc channel:%d,value:%d",read_arg.channel,read_arg.value); /* (0.1mV), 20846 is 2084.6mV or 2.0846V */
+
+    /* 这里演示另一种方式进行ADC采样，这个接口会调用到sifli_get_adc_value函数,会进行默认22次平均  */
+    rt_uint32_t value = rt_adc_read((rt_adc_device_t)s_adc_dev, ADC_DEV_CHANNEL);
+    /* log打印的value值，单位为0.1mV，20700等于2070.0mV或者2.0700V  */
+    LOG_I("rt_adc_read:%d,value:%d",read_arg.channel,value); /* (0.1mV), 20700 is 2070mV or 2.070V */
+
+    /* 采样完成后，关闭 adc */
+    rt_adc_disable((rt_adc_device_t)s_adc_dev, read_arg.channel);
+
+}
+
 /**
  * @brief  Main program
  * @param  None
@@ -68,45 +114,11 @@ int main(void)
 
     rt_err_t ret = RT_EOK;
     rt_uint32_t ms;
-    {
-        static PMU_ChgHandleTypeDef sifli_charge_handle;
 
-        #define CHARGE_DEFAULT_CV_VCTRL     (0x27)
-        #define CHARGE_DEFAULT_BANDGAP_VREF (0x7)
-        #define CHARGE_DEFAULT_CC_MN        (0x8)
-        #define CHARGE_DEFAULT_CC_MP        (0x14)
-        #define CHARGE_DEFAULT_FULL_VOLTAGE (4200)     /*mv*/
-        #define CHARGE_DEFAULT_REP_VOLTAGE  (CHARGE_DEFAULT_FULL_VOLTAGE - 135 )     /*mv*/
-        #define CHARGE_DEFAULT_VBAT_HIGH_VOLTAGE (4800)     /*mv*/
-        #define CHARGE_CC_CURRENT_LEVEL0   (65)
-        #define CHARGE_CC_CURRENT_LEVEL1   (300)
-        PMU_ChgCalParamTypeDef cal_param;
-        FACTORY_CFG_CHARGER_T cfg;
-        int len = sizeof(FACTORY_CFG_CHARGER_T);
-    
-        cal_param.cc_mn = CHARGE_DEFAULT_CC_MN;
-        cal_param.cc_mp = CHARGE_DEFAULT_CC_MP;
-        cal_param.cv_vctrl = CHARGE_DEFAULT_CV_VCTRL;
-        cal_param.bg = CHARGE_DEFAULT_BANDGAP_VREF;
-        cal_param.rep_vctrl = CHARGE_DEFAULT_CV_VCTRL - 7;
-    
-        if (BSP_CONFIG_get(FACTORY_CFG_ID_CHARGER, (uint8_t *)&cfg, len))
-        {
-            cal_param.cc_mn = cfg.cc_mn;
-            cal_param.cc_mp = cfg.cc_mp;
-            cal_param.cv_vctrl = cfg.cv_vctrl;
-            cal_param.bg = cfg.prog_v1p2;
-            cal_param.rep_vctrl = cfg.cv_vctrl - 7;
-            rt_kprintf("cal data cc_mn:%d cc_mp:%d cv_vctrl:%d prog_vlp2:%d\n", cfg.cc_mn, cfg.cc_mp, cfg.cv_vctrl, cfg.prog_v1p2);
-        }
-        HAL_PMU_ChgInit(&sifli_charge_handle, &cal_param);
-        //  HAL_HPAON_EnableWakeupSrc(HPAON_WAKEUP_SRC_PMUC, AON_PIN_MODE_DOUBLE_EDGE);
-        HAL_PMU_EnableChgWakeup();
-        HAL_PMU_ChgConfigTargetVolt(&sifli_charge_handle, CHARGE_DEFAULT_FULL_VOLTAGE);
-        HAL_PMU_ChgConfigRepVolt(&sifli_charge_handle, CHARGE_DEFAULT_REP_VOLTAGE);
-        HAL_PMU_ChgConfigVbatHighVolt(&sifli_charge_handle, CHARGE_DEFAULT_VBAT_HIGH_VOLTAGE);
-        HAL_PMU_ChgConfigCcCurrent(&sifli_charge_handle, 300);
-    }
+    rt_charge_enable(true);
+    rt_charge_set_cc_current(200);
+    rt_thread_mdelay(10);
+    adc_example();
 
     /* init littlevGL */
     ret = littlevgl2rtt_init("lcd");

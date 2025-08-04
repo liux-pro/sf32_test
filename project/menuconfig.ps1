@@ -1,0 +1,1 @@
+scons --board=sf32lb52-yyds --board_search_path=../boards --menuconfig
