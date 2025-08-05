@@ -44,7 +44,7 @@
             }, 
             {
                 "offset": "0x00820000", 
-                "max_size": "0x00400000", 
+                "max_size": "0x00040000", 
                 "img": "fs_root", 
                 "tags": [
                     "FS_REGION"

@@ -33,6 +33,10 @@ DoBuilding(TARGET, objs)
 # Add flash table buld.
 AddFTAB(SIFLI_SDK,rtconfig.CHIP)
 
+# Add existing file system image bin
+fs_bin=FileSystemBuild( "../disk", env)
+AddCustomImg("fs_root",bin=[fs_bin])
+
 # Generate download .bat script
 GenDownloadScript(env)
 
