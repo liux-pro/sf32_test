@@ -33,7 +33,7 @@ extern const uint8_t cubeFacelets[6][9];
 /*
  * 定义魔方六个面的颜色，标准配色。
  */
-extern RGB565 cubeColors[6];
+extern const RGB565 cubeColors[6];
 
 /*
  * 魔方27的cubelet对应的位置坐标。

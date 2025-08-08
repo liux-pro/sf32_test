@@ -160,7 +160,7 @@ int main(void)
     rt_uint32_t ms;
 
     rt_charge_enable(true);
-    rt_charge_set_cc_current(200);
+    rt_charge_set_cc_current(300);
     rt_thread_mdelay(10);
     adc_example();
 

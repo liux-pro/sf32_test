@@ -91,12 +91,6 @@ Renderer3D<RGB565, TGX_SHADER_MASK_ALL, float> renderer;
 extern "C" void tgx_setup()
 {
     imageBuffer = Image<RGB565>(fb, SLX, SLY);
-    cubeColors[0] = RGB565_Yellow;
-    cubeColors[1] = RGB565_Green;
-    cubeColors[2] = RGB565_Red;
-    cubeColors[3] = RGB565_White;
-    cubeColors[4] = RGB565_Blue;
-    cubeColors[5] = RGB565_Orange;
     renderer.setLight(fVec3(-1.0f, -1.0f, -1.0f), // white light coming from the right, above, in front.
     RGBf(1.0f, 1.0f, 1.0f), RGBf(1.0f, 1.0f, 1.0f), RGBf(1.0f, 1.0f, 1.0f)); // full white.
     renderer.setViewportSize(SLX, SLY);

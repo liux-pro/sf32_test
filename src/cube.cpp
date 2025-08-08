@@ -32,7 +32,9 @@ const uint8_t cubeFacelets[6][9] = {
 };
 
 
-RGB565 cubeColors[6];
+const RGB565 cubeColors[6] = {
+        RGB565_Yellow, RGB565_Green, RGB565_Red, RGB565_White, RGB565_Blue, RGB565_Orange
+};
 
 const fVec3 cubeletPosition[3][3][3] = {
         {
