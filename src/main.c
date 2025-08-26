@@ -148,6 +148,131 @@ int mnt_init(void)
 }
 INIT_ENV_EXPORT(mnt_init);
 
+#include "bf0_ble_gap.h"
+#include "bf0_sibles.h"
+#include "bf0_sibles_internal.h"
+#include "bf0_sibles_advertising.h"
+#include "ble_connection_manager.h"
+
+// #include "log.h"
+
+#define APP_MAX_PER_ADV_LEN (100)
+
+typedef struct
+{
+    uint8_t is_power_on;
+    // Periodic configure para
+    uint8_t per_adv_change_inv;
+    uint8_t per_adv_len;
+    // Mbox thread
+    rt_mailbox_t mb_handle;
+
+} app_env_t;
+
+static app_env_t g_app_env;
+static rt_mailbox_t g_app_mb;
+
+static app_env_t *ble_app_get_env(void)
+{
+    return &g_app_env;
+}
+
+SIBLES_ADVERTISING_CONTEXT_DECLAR(g_app_advertising_context);
+
+static uint8_t ble_app_advertising_event(uint8_t event, void *context, void *data)
+{
+    app_env_t *env = ble_app_get_env();
+
+    switch (event)
+    {
+    case SIBLES_ADV_EVT_ADV_STARTED:
+    {
+        sibles_adv_evt_startted_t *evt = (sibles_adv_evt_startted_t *)data;
+#if 0
+        if (!env->is_bg_adv_on)
+        {
+            env->is_bg_adv_on = 1;
+            ble_app_bg_advertising_start();
+        }
+#endif
+        LOG_I("ADV start resutl %d, mode %d\r\n", evt->status, evt->adv_mode);
+        break;
+    }
+    case SIBLES_ADV_EVT_ADV_STOPPED:
+    {
+        sibles_adv_evt_stopped_t *evt = (sibles_adv_evt_stopped_t *)data;
+        LOG_I("ADV stopped reason %d, mode %d\r\n", evt->reason, evt->adv_mode);
+        break;
+    }
+    default:
+        break;
+    }
+    return 0;
+}
+
+#define DEFAULT_LOCAL_NAME "SIFLI_APP"
+#define EXAMPLE_LOCAL_NAME "SIFLI_EXAMPLE"
+uint8_t g_peri_adv[APP_MAX_PER_ADV_LEN];
+
+/* Enable advertise via advertising service. */
+static void ble_app_advertising_start(void)
+{
+    sibles_advertising_para_t para = {0};
+    uint8_t ret;
+
+    para.own_addr_type = GAPM_STATIC_ADDR;
+    para.config.adv_mode = SIBLES_ADV_BROADCAST_MODE;
+    /* Keep advertising till disable it or connected. */
+    para.config.mode_config.conn_config.duration = 0x0;
+    para.config.mode_config.conn_config.interval = 20000 / 625; 
+    para.config.max_tx_pwr =  0x7f;
+    /* Advertising will re-start after disconnected. */
+    para.config.is_auto_restart = 1;
+    /* Scan rsp data is same as advertising data. */
+    //para.config.is_rsp_data_duplicate = 1;
+
+    /* Prepare name filed. Due to name is too long to put adv data, put it to rsp data.*/
+    char local_name[] = "SF32";
+    para.adv_data.completed_name = rt_malloc(rt_strlen(local_name) + sizeof(sibles_adv_type_name_t));
+    para.adv_data.completed_name->name_len = rt_strlen(local_name);
+    rt_memcpy(para.adv_data.completed_name->name, local_name, para.adv_data.completed_name->name_len);
+
+    /* Prepare manufacturer filed .*/
+    uint8_t manu_additnal_data[] = {0x20, 0xC4, 0x91, 0x91};
+    uint16_t manu_company_id = SIG_SIFLI_COMPANY_ID;
+    para.adv_data.manufacturer_data = rt_malloc(sizeof(sibles_adv_type_manufacturer_data_t) + sizeof(manu_additnal_data));
+    para.adv_data.manufacturer_data->company_id = manu_company_id;
+    para.adv_data.manufacturer_data->data_len = sizeof(manu_additnal_data);
+    rt_memcpy(para.adv_data.manufacturer_data->additional_data, manu_additnal_data, sizeof(manu_additnal_data));
+
+    para.evt_handler = ble_app_advertising_event;
+
+    ret = sibles_advertising_init(g_app_advertising_context, &para);
+    if (ret == SIBLES_ADV_NO_ERR)
+    {
+        sibles_advertising_start(g_app_advertising_context);
+    }
+
+    rt_free(para.adv_data.completed_name);
+    rt_free(para.adv_data.manufacturer_data);
+}
+
+
+#ifndef NVDS_AUTO_UPDATE_MAC_ADDRESS_ENABLE
+ble_common_update_type_t ble_request_public_address(bd_addr_t *addr)
+{
+    int ret = bt_mac_addr_generate_via_uid_v2(addr);
+
+    if (ret != 0)
+    {
+        LOG_W("generate mac addres failed %d", ret);
+        return BLE_UPDATE_NO_UPDATE;
+    }
+
+    return BLE_UPDATE_ONCE;
+}
+#endif // NVDS_AUTO_UPDATE_MAC_ADDRESS_ENABLE
+
 /**
  * @brief  Main program
  * @param  None
@@ -155,33 +280,50 @@ INIT_ENV_EXPORT(mnt_init);
  */
 int main(void)
 {
+    int count = 0;
+    app_env_t *env = ble_app_get_env();
+    env->mb_handle = rt_mb_create("app", 8, RT_IPC_FLAG_FIFO);
+    sifli_ble_enable();
 
-    rt_err_t ret = RT_EOK;
-    rt_uint32_t ms;
+    env->per_adv_len = 80;
 
-    rt_charge_enable(true);
-    rt_charge_set_cc_current(300);
-    rt_thread_mdelay(10);
-    adc_example();
-
-    /* init littlevGL */
-    ret = littlevgl2rtt_init("lcd");
-    if (ret != RT_EOK)
-    {
-        return ret;
-    }
-    
-    // lv_demo_main();
-    create_snow_effect();
-
-    HAL_PIN_Set(PAD_PA01, GPIO_A1, PIN_NOPULL, 1);
-    BSP_GPIO_Set(1, 1, 1);
-   
     while (1)
     {
-        ms = lv_task_handler();
-        rt_thread_mdelay(ms);
-    }
+        uint32_t value;
+        int ret;
+        rt_mb_recv(env->mb_handle, (rt_uint32_t *)&value, RT_WAITING_FOREVER);
+        if (value == BLE_POWER_ON_IND)
+        {
+            env->is_power_on = 1;
 
+            /* First enable connectable adv then enable non-connectable. */
+            ble_app_advertising_start();
+            LOG_I("receive BLE power on!\r\n");
+        }
+    }
     return RT_EOK;
 }
+int ble_app_event_handler(uint16_t event_id, uint8_t *data, uint16_t len, uint32_t context)
+{
+    app_env_t *env = ble_app_get_env();
+    switch (event_id)
+    {
+    case BLE_POWER_ON_IND:
+    {
+        /* Handle in own thread to avoid conflict */
+        if (env->mb_handle)
+            rt_mb_send(env->mb_handle, BLE_POWER_ON_IND);
+        break;
+    }
+    case BLE_GAP_CREATE_PERIODIC_ADV_SYNC_CNF:
+    {
+        ble_gap_create_per_adv_sync_cnf_t *cnf = (ble_gap_create_per_adv_sync_cnf_t *)data;
+        LOG_I("Create PER_ADV_SYNC result %d", cnf->status);
+        break;
+    }
+    default:
+        break;
+    }
+    return 0;
+}
+BLE_EVENT_REGISTER(ble_app_event_handler, NULL);
