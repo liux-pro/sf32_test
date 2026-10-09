@@ -23,7 +23,6 @@ def ide_support(target, source, env) -> None:
 
     # ---------- 1. 生成 compile_commands.json ----------
     build_dir = env_vars["BUILD_DIR_FULL_PATH"]
-    env.CompilationDatabase()
     compile_db_path = os.path.join(build_dir, "compile_commands.json")
 
     compiler_path = _find_compiler(env_vars)
