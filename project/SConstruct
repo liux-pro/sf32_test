@@ -1,6 +1,6 @@
 import os
 import rtconfig
-from ide_support import vscode_support
+from ide_support import ide_support
 
 # Check SDK 
 SIFLI_SDK = os.getenv('SIFLI_SDK')
@@ -40,4 +40,4 @@ AddCustomImg("fs_root",bin=[fs_bin])
 # Generate download .bat script
 GenDownloadScript(env)
 
-vscode_support(env)
+env.AddPostAction(TARGET, ide_support)

@@ -1,46 +1,48 @@
 import os
 import json
-import shlex
 from typing import List, Optional
 
 PROJECT_DIR = os.path.join('..')
 
 
-def vscode_support(env) -> None:
+def ide_support(target, source, env) -> None:
     """
-    生成VS Code的c_cpp_properties.json配置文件
-    修改VS Code的 settings.json ，为vscode添加sf32的shell，并将其设为默认，同时启用自动保存
+    生成IDE相关配置（CLion + VS Code clangd 共用）：
+
+    1. compile_commands.json
+       - CLion：直接读取项目根目录的编译数据库
+       - VS Code：clangd 插件同样读取 compile_commands.json
+    2. .vscode/settings.json
+       - 为 VS Code 添加 SF32 的 PowerShell 终端并设为默认
+       - 启用自动保存
 
     参数:
         env: SCons构建环境对象
     """
-    # 提取构建环境变量
     env_vars = json.loads(env.Dump(format="json"))
 
-    # 准备配置数据
-    config = {
-        "configurations": [{
-            "name": "sf32",
-            "includePath": env_vars["CPPPATH"],
-            "compilerPath": _find_compiler(env_vars),
-            "intelliSenseMode": "gcc-arm",
-            "defines": list(env["CPPDEFINES"])
-        }]
-    }
+    # ---------- 1. 生成 compile_commands.json ----------
+    build_dir = env_vars["BUILD_DIR_FULL_PATH"]
+    env.CompilationDatabase()
+    compile_db_path = os.path.join(build_dir, "compile_commands.json")
 
-    # 确保.vscode目录存在
+    compiler_path = _find_compiler(env_vars)
+    if not compiler_path:
+        raise RuntimeError(f"编译器 '{env_vars['CC']}' 在PATH中未找到")
+
+    processed_commands = _process_compile_commands(
+        compile_db_path, compiler_path)
+
+    output_path = os.path.join(PROJECT_DIR, 'compile_commands.json')
+    with open(output_path, 'w') as output_file:
+        json.dump(processed_commands, output_file, indent=4)
+        print(f"✓ 已生成 compile_commands.json (CLion / VS Code clangd): {output_path}")
+
+    # ---------- 2. 更新 VS Code settings.json ----------
     vscode_dir = os.path.join(PROJECT_DIR, '.vscode')
     os.makedirs(vscode_dir, exist_ok=True)
 
-    # 写入配置文件
-    config_path = os.path.join(vscode_dir, 'c_cpp_properties.json')
-    with open(config_path, 'w') as config_file:
-        json.dump(config, config_file, indent=4)
-        print(f"✓ 已生成VS Code C/C+++ 配置文件: {config_path}")
-
-
-    # 修改设置
-    # 根据环境变量，找到 export.ps1 位置
+    # 根据环境变量找到 export.ps1 位置
     export_file = os.path.join(os.environ.get("SIFLI_SDK_PATH"), "export.ps1")
     settings_file = os.path.join(vscode_dir, 'settings.json')
     try:
@@ -70,38 +72,7 @@ def vscode_support(env) -> None:
 
     with open(settings_file, 'w', encoding='utf-8') as f:
         json.dump(settings, f, indent=4, ensure_ascii=False)
-        print(f"✓ 已生成VS Code 配置文件: {settings_file}")
-
-
-def clion_support(env) -> None:
-    """
-    生成CLion的compile_commands.json配置文件
-
-    参数:
-        env: SCons构建环境对象
-    """
-    # 获取构建环境信息
-    env_vars = json.loads(env.Dump(format="json"))
-    build_dir = env_vars["BUILD_DIR_FULL_PATH"]
-
-    # 定位编译数据库
-    db_name = str(env.CompilationDatabase()[0])
-    compile_db_path = os.path.join(build_dir, db_name)
-
-    # 验证编译器路径
-    compiler_path = _find_compiler(env_vars)
-    if not compiler_path:
-        raise RuntimeError(f"编译器 '{env_vars['CC']}' 在PATH中未找到")
-
-    # 处理编译命令
-    processed_commands = _process_compile_commands(
-        compile_db_path, compiler_path)
-
-    # 写入处理后的编译命令
-    output_path = os.path.join(PROJECT_DIR, 'compile_commands.json')
-    with open(output_path, 'w') as output_file:
-        json.dump(processed_commands, output_file, indent=4)
-        print(f"✓ 已生成CLion配置文件: {output_path}")
+        print(f"✓ 已更新 VS Code settings.json: {settings_file}")
 
 
 def _find_compiler(env_vars: dict) -> Optional[str]:
@@ -135,11 +106,8 @@ def _process_compile_commands(db_path: str, compiler_path: str) -> List[dict]:
 
         # 替换编译器路径
         if "command" in entry:
-            tokens = shlex.split(entry["command"])
-            for i, token in enumerate(tokens):
-                if '=' not in token and token.strip():
-                    tokens[i] = compiler_path
-                    break
+            tokens = entry["command"].split(" ")
+            tokens[0] = compiler_path
             entry["command"] = " ".join(tokens)
 
         processed.append(entry)
